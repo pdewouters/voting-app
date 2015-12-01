@@ -42,7 +42,7 @@ const choices = (state = [], action) => {
                 ...state,
                 {
                     id: 'choice-' + timestamp,
-                    desc: action.text,
+                    desc: action.desc,
                     pollID: action.pollID
                 }
             ];
@@ -69,6 +69,16 @@ const votingApp = combineReducers({
 const store = createStore(votingApp);
 
 const App = React.createClass({
+    componentDidMount: function() {
+        const { store } = this.context;
+        this.unsubscribe = store.subscribe(() =>
+            this.forceUpdate()
+        );
+    },
+
+    componentWillUnmount: function() {
+        this.unsubscribe();
+    },
     getInitialState: function(){
       return {
           polls: [],
@@ -105,7 +115,8 @@ const App = React.createClass({
     },
     render: function(){
         var details;
-        var state = store.getState();
+        const { store } = this.context;
+        const state = store.getState();
         if(state.polls.length>=1){
             var pollID = state.currentPoll || state.polls[0];
             var poll = _.findWhere(state.polls,{id:pollID});
@@ -119,13 +130,16 @@ const App = React.createClass({
                 <div className="page-header">
                     <h1><Link to="/">My Polls</Link></h1>
                 </div>
-                <PollList loadPollDetails={this.loadPollDetails} polls={state.polls} />
+                <PollList polls={state.polls} loadPollDetails={this.loadPollDetails} />
                 <AddPollForm loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addPoll={this.addPoll} />
                 {details}
             </div>
         );
     }
 });
+App.contextTypes = {
+    store: React.PropTypes.object
+};
 
 const PollList = React.createClass({
     handleClick: function(e){
@@ -140,10 +154,9 @@ const PollList = React.createClass({
         </li>
     },
     render: function(){
-        var state = store.getState();
         return (
             <ul>
-                {state.polls.map(this.renderPoll)}
+                {this.props.polls.map(this.renderPoll)}
             </ul>
         );
     }
@@ -236,4 +249,4 @@ ReactDOM.render(
         </Router>
     </Provider>,
     document.getElementById('main')
-)
+);
