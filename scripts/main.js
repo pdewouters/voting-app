@@ -150,7 +150,7 @@ const PollList = React.createClass({
     },
     renderPoll: function(poll){
         return <li index={poll.id} key={poll.id}>
-            <a onClick={this.handleClick} data-id={poll.id} href="#">{poll.desc}</a>
+            <a onClick={this.handleClick} data-id={poll.id} href="#">{poll.desc}</a> - <Link to={`/public/polls/${poll.id}`}>Vote</Link>
         </li>
     },
     render: function(){
@@ -213,7 +213,7 @@ const AddChoiceForm = React.createClass({
         var choice = {
             id: 'choice-' + timestamp,
             desc: this.refs.choiceText.value,
-            pollID: this.props.currentPoll
+            pollID: this.props.currentPoll,
         };
         this.props.addChoice(choice);
         this.props.loadPollDetails(this.props.currentPoll);
@@ -230,6 +230,37 @@ const AddChoiceForm = React.createClass({
     }
 });
 
+const VoteOnPoll = React.createClass({
+    componentDidMount: function() {
+        const { store } = this.context;
+        this.unsubscribe = store.subscribe(() =>
+            this.forceUpdate()
+        );
+    },
+
+    componentWillUnmount: function() {
+        this.unsubscribe();
+    },
+    render: function(){
+        const { store } = this.context;
+        var state = store.getState();
+        var poll = _.findWhere(state.polls,{id:this.props.params.pollID});
+        var choices = _.where(state.choices,{pollID:this.props.params.pollID});
+        return (
+            <div>
+                <ul>
+                    {choices.map(function(choice){
+                        return <li key={choice.id}>{choice.desc}</li>
+                    })}
+                </ul>
+            </div>
+        );
+    }
+});
+VoteOnPoll.contextTypes = {
+    store: React.PropTypes.object
+};
+
 const NotFound = React.createClass({
     render: function(){
         return (
@@ -243,9 +274,8 @@ syncReduxAndRouter(history, store)
 ReactDOM.render(
     <Provider store={store}>
         <Router history={history}>
-            <Route path="/" component={App}>
-                <Route path="polls/:pollID" component={PollDetails} />
-            </Route>
+            <Route path="/" component={App} />
+            <Route path="public/polls/:pollID" component={VoteOnPoll} />
         </Router>
     </Provider>,
     document.getElementById('main')
