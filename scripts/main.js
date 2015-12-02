@@ -20,12 +20,25 @@ import { Provider } from 'react-redux';
 
 const polls = (state = [], action) => {
     switch(action.type){
+        case 'LOAD_POLL':
+
+            if(_.findWhere(state,{id:action.poll.key})){
+                return state;
+            } else {
+                return [
+                    ...state,
+                    {
+                        id: action.poll.key,
+                        desc: action.poll.desc,
+                    }
+                ];
+            }
+
         case 'ADD_POLL':
-            var timestamp = (new Date()).getTime();
             return [
                 ...state,
                 {
-                    id: 'poll-' + timestamp,
+                    id: action.id,
                     desc: action.desc
                 }
             ];
@@ -36,12 +49,24 @@ const polls = (state = [], action) => {
 
 const choices = (state = [], action) => {
     switch(action.type){
+        case 'LOAD_CHOICE':
+            if(_.findWhere(state,{id:action.choice.key})){
+                return state;
+            } else {
+                return [
+                    ...state,
+                    {
+                        id: action.choice.key,
+                        desc: action.choice.desc,
+                        pollID: action.choice.pollID
+                    }
+                ];
+            }
         case 'ADD_CHOICE':
-            var timestamp = (new Date()).getTime();
             return [
                 ...state,
                 {
-                    id: 'choice-' + timestamp,
+                    id: action.id,
                     desc: action.desc,
                     pollID: action.pollID
                 }
@@ -74,44 +99,70 @@ const App = React.createClass({
         this.unsubscribe = store.subscribe(() =>
             this.forceUpdate()
         );
+
+        base.listenTo('paulwp/polls', {
+            context: this,
+            asArray: true,
+            then(pollsData){
+                pollsData.map(function(poll){
+                    store.dispatch({
+                        type: 'LOAD_POLL',
+                        poll: poll
+                    })
+                })
+
+            }
+        })
+        base.listenTo('paulwp/choices', {
+            context: this,
+            asArray: true,
+            then(choicesData){
+                choicesData.map(function(choice){
+                    store.dispatch({
+                        type: 'LOAD_CHOICE',
+                        choice: choice
+                    })
+                })
+
+            }
+        })
     },
 
     componentWillUnmount: function() {
         this.unsubscribe();
     },
-    getInitialState: function(){
-      return {
-          polls: [],
-          choices: [],
-          currentPoll: ''
-    };
-    },
+
     addPoll: function(poll){
-        //this.state.polls.push(poll);
-        //this.setState({polls: this.state.polls});
+
         store.dispatch({
             type: 'ADD_POLL',
+            id: poll.id,
             desc: poll.desc
         });
-        console.log(store.getState());
+
+        base.post('paulwp/polls/' + poll.id, {
+            data: {desc: poll.desc},
+
+        });
     },
     addChoice: function(choice){
-        //this.state.choices.push(choice);
-        //this.setState({choices: this.state.choices});
+
         store.dispatch({
             type: 'ADD_CHOICE',
+            id: choice.id,
             desc: choice.desc,
             pollID: choice.pollID
         });
-        console.log(store.getState());
+        base.post('paulwp/choices/' + choice.id, {
+            data: {desc: choice.desc, pollID: choice.pollID},
+
+        });
     },
     loadPollDetails: function(pollID){
-        //this.setState({currentPoll: pollID});
         store.dispatch({
             type: 'SET_CURRENT_POLL',
             pollID
         });
-        console.log(store.getState());
     },
     render: function(){
         var details;
@@ -120,7 +171,7 @@ const App = React.createClass({
         if(state.polls.length>=1){
             var pollID = state.currentPoll || state.polls[0];
             var poll = _.findWhere(state.polls,{id:pollID});
-            var choices = _.where(state.choices,{pollID:pollID});
+            var choices = _.where(state.choices,{pollID:pollID});console.log(state.choices);
             details = <PollDetails loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addChoice={this.addChoice} pollDetails={poll} choices={choices} />;
         } else {
             details = '';
@@ -148,8 +199,8 @@ const PollList = React.createClass({
         var pollID = e.target.getAttribute('data-id');
         this.props.loadPollDetails(pollID);
     },
-    renderPoll: function(poll){
-        return <li index={poll.id} key={poll.id}>
+    renderPoll: function(poll,index){
+        return <li index={index} key={index}>
             <a onClick={this.handleClick} data-id={poll.id} href="#">{poll.desc}</a> - <Link to={`/public/polls/${poll.id}`}>Vote</Link>
         </li>
     },
@@ -186,8 +237,8 @@ const AddPollForm = React.createClass({
 });
 
 const PollDetails = React.createClass({
-    renderChoice: function(choice){
-        return <li index={choice.id} key={choice.id}>
+    renderChoice: function(choice,index){
+        return <li index={index} key={index}>
             {choice.desc}
         </li>
     },
