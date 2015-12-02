@@ -58,7 +58,8 @@ const choices = (state = [], action) => {
                     {
                         id: action.choice.key,
                         desc: action.choice.desc,
-                        pollID: action.choice.pollID
+                        pollID: action.choice.pollID,
+                        voteTally: action.choice.voteTally
                     }
                 ];
             }
@@ -68,8 +69,22 @@ const choices = (state = [], action) => {
                 {
                     id: action.id,
                     desc: action.desc,
-                    pollID: action.pollID
+                    pollID: action.pollID,
+                    voteTally: action.voteTally
                 }
+            ];
+        case 'CAST_VOTE':
+            // increment votetally for choice
+            var index = _.findIndex(state,{id:action.choice.id});
+            return [
+                ...state.slice(0,index),
+                {
+                    id: action.choice.id,
+                    desc: action.choice.desc,
+                    pollID: action.choice.pollID,
+                    voteTally: action.choice.voteTally
+                },
+                ...state.slice(index + 1)
             ];
         default:
             return state;
@@ -151,10 +166,11 @@ const App = React.createClass({
             type: 'ADD_CHOICE',
             id: choice.id,
             desc: choice.desc,
-            pollID: choice.pollID
+            pollID: choice.pollID,
+            voteTally: choice.voteTally
         });
         base.post('paulwp/choices/' + choice.id, {
-            data: {desc: choice.desc, pollID: choice.pollID},
+            data: {desc: choice.desc, pollID: choice.pollID, voteTally: choice.voteTally},
 
         });
     },
@@ -171,7 +187,7 @@ const App = React.createClass({
         if(state.polls.length>=1){
             var pollID = state.currentPoll || state.polls[0];
             var poll = _.findWhere(state.polls,{id:pollID});
-            var choices = _.where(state.choices,{pollID:pollID});console.log(state.choices);
+            var choices = _.where(state.choices,{pollID:pollID});
             details = <PollDetails loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addChoice={this.addChoice} pollDetails={poll} choices={choices} />;
         } else {
             details = '';
@@ -201,7 +217,7 @@ const PollList = React.createClass({
     },
     renderPoll: function(poll,index){
         return <li index={index} key={index}>
-            <a onClick={this.handleClick} data-id={poll.id} href="#">{poll.desc}</a> - <Link to={`/public/polls/${poll.id}`}>Vote</Link>
+            <a target='_blank' onClick={this.handleClick} data-id={poll.id} href="#">{poll.desc}</a> - <Link to={`/public/polls/${poll.id}`}>Vote</Link>
         </li>
     },
     render: function(){
@@ -265,6 +281,7 @@ const AddChoiceForm = React.createClass({
             id: 'choice-' + timestamp,
             desc: this.refs.choiceText.value,
             pollID: this.props.currentPoll,
+            voteTally: 0
         };
         this.props.addChoice(choice);
         this.props.loadPollDetails(this.props.currentPoll);
@@ -292,6 +309,21 @@ const VoteOnPoll = React.createClass({
     componentWillUnmount: function() {
         this.unsubscribe();
     },
+    handleClick: function(e){
+        const { store } = this.context;
+        var state = store.getState();
+        var choiceID = e.target.getAttribute('data-id');
+        var choice = _.findWhere(state.choices,{id:choiceID});
+        choice.voteTally += 1;
+        store.dispatch({
+           type: 'CAST_VOTE',
+            choice: choice
+        });
+        base.post('paulwp/choices/' + choice.id, {
+            data: {desc: choice.desc, pollID: choice.pollID, voteTally: choice.voteTally},
+
+        });
+    },
     render: function(){
         const { store } = this.context;
         var state = store.getState();
@@ -300,8 +332,8 @@ const VoteOnPoll = React.createClass({
         return (
             <div>
                 <ul>
-                    {choices.map(function(choice){
-                        return <li key={choice.id}>{choice.desc}</li>
+                    {choices.map((choice,index) => {
+                        return <li key={index}><a onClick={this.handleClick} href="#" data-id={choice.id}>{choice.desc}</a></li>
                     })}
                 </ul>
             </div>
