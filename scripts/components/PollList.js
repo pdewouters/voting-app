@@ -16,16 +16,29 @@ class PollList extends React.Component {
     renderPoll(poll,index){
         const { store } = this.context;
         const state = store.getState();
-        return <li index={index} key={index}>
-            <a target='_blank' onClick={this.handleClick} data-id={poll.id} href="#">{poll.desc}</a> - <button onClick={() => store.dispatch(updatePath('/public/polls/'+poll.id))}>Vote</button> - <button onClick={() => store.dispatch(updatePath('/public/polls/results/'+poll.id))}>Results</button>
-        </li>
+        return <tr index={index} key={index}>
+            <td>
+            <h3 className="subheading"><a target='_blank' onClick={this.handleClick} data-id={poll.id} href="#">{poll.desc}</a></h3>
+            <div className="button-group">
+                <button className="button" onClick={() => store.dispatch(updatePath('/public/polls/'+poll.id))}>Vote</button>
+                <button className="button" onClick={() => store.dispatch(updatePath('/public/polls/results/'+poll.id))}>Results</button>
+            </div>
+            </td>
+        </tr>
     }
 
     render(){
         return (
-            <ul>
+            <table>
+                <thead>
+                <tr>
+                    <th width="200">Polls</th>
+                </tr>
+                </thead>
+                <tbody>
                 {this.props.polls.map(this.renderPoll)}
-            </ul>
+                </tbody>
+            </table>
         );
     }
 }

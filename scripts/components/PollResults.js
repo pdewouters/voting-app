@@ -39,13 +39,17 @@ class PollResults extends React.Component {
         var poll = _.findWhere(state.polls,{id:this.props.params.pollID});
         var choices = _.where(state.choices,{pollID:this.props.params.pollID});
         return (
-            <div>
+            <div className="row">
                 <Header />
-                <ul>
-                    {choices.map((choice,index) => {
-                        return <li key={index}>{choice.desc} : {choice.voteTally}</li>
-                    })}
-                </ul>
+                <div className="columns">
+                    <h2 className="subheader">Choices: {poll.desc}</h2>
+
+                    <ul className="no-bullet">
+                        {choices.map((choice,index) => {
+                            return <li key={index}>{choice.desc} : {choice.voteTally}</li>
+                        })}
+                    </ul>
+                </div>
             </div>
         );
     }

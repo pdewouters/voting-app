@@ -14,10 +14,10 @@ class PollDetails extends React.Component {
     render(){
         return (
             <div>
-                <h2>{this.props.pollDetails? this.props.pollDetails.desc : ''}</h2>
+                <h2 className="subheader">Details: {this.props.pollDetails? this.props.pollDetails.desc : ''}</h2>
                 <AddChoiceForm loadPollDetails={this.props.loadPollDetails} currentPoll={this.props.currentPoll} addChoice={this.props.addChoice} />
 
-                <ul>
+                <ul className="no-bullet">
                     {this.props.choices.map(this.renderChoice)}
                 </ul>
             </div>

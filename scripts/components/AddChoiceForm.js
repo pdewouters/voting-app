@@ -21,9 +21,12 @@ class AddChoiceForm extends React.Component {
     render(){
         return (
             <form onSubmit={this.handleSubmit}>
-                <label>Add Choice</label>
-                <input ref="choiceText" type="text" />
-                <input type="submit" />
+                <div className="input-group">
+                    <input ref="choiceText" type="text" />
+                    <div className="input-group-button">
+                        <input type="submit" className="button" value="Add Choice" />
+                    </div>
+                </div>
             </form>
         );
     }

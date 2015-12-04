@@ -63,13 +63,17 @@ class VoteOnPoll extends React.Component {
         var poll = _.findWhere(state.polls,{id:this.props.params.pollID});
         var choices = _.where(state.choices,{pollID:this.props.params.pollID});
         return (
-            <div>
+            <div className="row">
                 <Header />
-                <ul>
-                    {choices.map((choice,index) => {
-                        return <li key={index}><a onClick={this.handleClick} href="#" data-id={choice.id}>{choice.desc}</a></li>
-                    })}
-                </ul>
+                <div className="columns">
+                    <h2 className="subheader">Choices: {poll.desc}</h2>
+
+                    <ul className="no-bullet">
+                        {choices.map((choice,index) => {
+                            return <li key={index}><a onClick={this.handleClick} href="#" data-id={choice.id}>{choice.desc}</a></li>
+                        })}
+                    </ul>
+                 </div>
             </div>
         );
     }

@@ -102,7 +102,7 @@ class App extends React.Component {
             <nav className="login">
                 <h2>Polls</h2>
                 <p>Sign in to manage your polls</p>
-                <button className="github" onClick={this.authenticate.bind(this, 'github')}>Log In with Github</button>
+                <button className="large button" onClick={this.authenticate.bind(this, 'github')}>Log In with Github</button>
 
             </nav>
         )
@@ -154,7 +154,7 @@ class App extends React.Component {
     }
 
     render(){
-        let logoutButton = <button onClick={this.logout}>Log Out!</button>
+        let logoutButton = <button className="large button" onClick={this.logout}>Log Out!</button>
 
         // first check if they arent logged in
         const { store } = this.context;
@@ -185,12 +185,17 @@ class App extends React.Component {
             details = '';
         }
         return (
-            <div>
+            <div className="row">
                 <Header />
-                {logoutButton}
-                <PollList polls={state.polls} loadPollDetails={this.loadPollDetails} />
-                <AddPollForm loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addPoll={this.addPoll} />
-                {details}
+                <div className="medium-6 columns">
+                    {logoutButton}
+                    <PollList polls={state.polls} loadPollDetails={this.loadPollDetails} />
+                </div>
+                <div className="medium-6 columns">
+                    <AddPollForm loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addPoll={this.addPoll} />
+                    {details}
+                </div>
+
             </div>
         );
     }
