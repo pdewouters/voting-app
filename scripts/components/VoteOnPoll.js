@@ -14,7 +14,7 @@ class VoteOnPoll extends React.Component {
         this.unsubscribe = store.subscribe(() =>
             this.forceUpdate()
         );
-        this.choicesRef = base.listenTo('paulwp/choices', {
+        this.choicesRef = base.listenTo('app/choices', {
             context: this,
             asArray: true,
             then(choicesData){
@@ -48,7 +48,7 @@ class VoteOnPoll extends React.Component {
         });
 
         var pollID =this.props.params.pollID;
-        base.post('paulwp/choices/' + choice.id, {
+        base.post('app/choices/' + choice.id, {
 
             data: {desc: choice.desc, pollID: choice.pollID, voteTally: choice.voteTally},
             then(){

@@ -85,10 +85,34 @@ const currentPoll = (state = '', action) => {
     }
 };
 
+const currentUser = (state = '', action) => {
+  switch(action.type){
+      case 'SET_CURRENT_USER':
+          return action.uid;
+      case 'CLEAR_CURRENT_USER':
+          return null;
+      default:
+          return state;
+  }
+};
+
+const owner = (state = '', action) => {
+    switch(action.type){
+        case 'SET_OWNER':
+            return action.owner;
+        case 'CLEAR_OWNER':
+            return null;
+        default:
+            return state;
+    }
+};
+
 const reducers = combineReducers(Object.assign({}, {
     polls,
     choices,
-    currentPoll
+    currentPoll,
+    currentUser,
+    owner
 }, {
     routing: routeReducer
 }))

@@ -13,7 +13,7 @@ class PollResults extends React.Component {
         this.unsubscribe = store.subscribe(() =>
             this.forceUpdate()
         );
-        this.choicesRef = base.listenTo('paulwp/choices', {
+        this.choicesRef = base.listenTo('app/choices', {
             context: this,
             asArray: true,
             then(choicesData){

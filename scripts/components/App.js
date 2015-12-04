@@ -4,6 +4,8 @@ import _ from 'underscore';
 import Rebase from 're-base';
 import autobind from 'autobind-decorator';
 const base = Rebase.createClass('https://paulwp-polls-fcc.firebaseio.com');
+import Firebase from 'firebase';
+var ref = new Firebase("https://paulwp-polls-fcc.firebaseio.com");
 
 import Header from './Header.js';
 import PollList from './PollList.js';
@@ -12,13 +14,21 @@ import PollDetails from './PollDetails.js';
 
 @autobind
 class App extends React.Component {
+    authenticate(provider) {
+        console.log("Trying to auth with" + provider);
+        base.authWithOAuthPopup(provider, this.authHandler);
+    }
     componentDidMount() {
+        var token = localStorage.getItem('token');
+        if(token) {
+            ref.authWithCustomToken(token,this.authHandler);
+        }
         const { store } = this.context;
         this.unsubscribe = store.subscribe(() =>
             this.forceUpdate()
         );
 
-        this.pollsRef = base.listenTo('paulwp/polls', {
+        this.pollsRef = base.listenTo('app/polls', {
             context: this,
             asArray: true,
             then(pollsData){
@@ -31,7 +41,7 @@ class App extends React.Component {
 
             }
         })
-        this.choicesRef = base.listenTo('paulwp/choices', {
+        this.choicesRef = base.listenTo('app/choices', {
             context: this,
             asArray: true,
             then(choicesData){
@@ -44,6 +54,58 @@ class App extends React.Component {
 
             }
         })
+    }
+
+    logout() {
+        base.unauth();
+        localStorage.removeItem('token');
+        const { store } = this.context;
+        store.dispatch({type: 'CLEAR_CURRENT_USER'});
+    }
+
+    authHandler(err, authData) {
+        if(err) {
+            console.err(err);
+            return;
+        }
+
+        // save the login token in the browser
+        localStorage.setItem('token',authData.token);
+
+        const storeRef = ref.child(authData.uid);
+        storeRef.on('value', (snapshot) => {
+            var data = snapshot.val() || {};
+
+            // claim it as our own if there is no owner already
+            if(!data.owner) {
+                storeRef.set({
+                    owner : authData.uid
+                });
+            }
+            const { store } = this.context;
+            // update our state to reflect the current store owner and user
+            store.dispatch({
+                type: 'SET_CURRENT_USER',
+                uid: authData.uid
+            });
+
+            store.dispatch({
+                type: 'SET_OWNER',
+                owner : data.owner || authData.uid
+            });
+
+        });
+    }
+
+    renderLogin() {
+        return (
+            <nav className="login">
+                <h2>Polls</h2>
+                <p>Sign in to manage your polls</p>
+                <button className="github" onClick={this.authenticate.bind(this, 'github')}>Log In with Github</button>
+
+            </nav>
+        )
     }
 
     componentWillUnmount() {
@@ -61,7 +123,7 @@ class App extends React.Component {
             desc: poll.desc
         });
 
-        base.post('paulwp/polls/' + poll.id, {
+        base.post('app/polls/' + poll.id, {
             data: {desc: poll.desc},
         });
     }
@@ -76,7 +138,7 @@ class App extends React.Component {
             pollID: choice.pollID,
             voteTally: choice.voteTally
         });
-        base.post('paulwp/choices/' + choice.id, {
+        base.post('app/choices/' + choice.id, {
             data: {desc: choice.desc, pollID: choice.pollID, voteTally: choice.voteTally},
 
         });
@@ -92,9 +154,28 @@ class App extends React.Component {
     }
 
     render(){
-        var details;
+        let logoutButton = <button onClick={this.logout}>Log Out!</button>
+
+        // first check if they arent logged in
         const { store } = this.context;
         const state = store.getState();
+        if(!state.currentUser) {
+            return (
+                <div>{this.renderLogin()}</div>
+            )
+        }
+
+        // then check if they arent the owner of the current store
+        if(state.currentUser !== state.owner) {
+            return (
+                <div>
+                    <p>Sorry, you aren't the owner of this store</p>
+                    {logoutButton}
+                </div>
+            )
+        }
+        var details;
+
         if(state.polls.length>=1){
             var pollID = state.currentPoll || state.polls[0];
             var poll = _.findWhere(state.polls,{id:pollID}) || {};
@@ -106,6 +187,7 @@ class App extends React.Component {
         return (
             <div>
                 <Header />
+                {logoutButton}
                 <PollList polls={state.polls} loadPollDetails={this.loadPollDetails} />
                 <AddPollForm loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addPoll={this.addPoll} />
                 {details}
