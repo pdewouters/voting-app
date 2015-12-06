@@ -6,7 +6,6 @@ import _ from 'underscore';
 const polls = (state = [], action) => {
     switch(action.type){
         case 'LOAD_POLL':
-
             if(_.findWhere(state,{id:action.poll.key})){
                 return state;
             } else {
@@ -15,6 +14,7 @@ const polls = (state = [], action) => {
                     {
                         id: action.poll.key,
                         desc: action.poll.desc,
+                        owner: action.poll.owner
                     }
                 ];
             }
@@ -24,7 +24,8 @@ const polls = (state = [], action) => {
                 ...state,
                 {
                     id: action.id,
-                    desc: action.desc
+                    desc: action.desc,
+                    owner: action.owner
                 }
             ];
         default:
@@ -96,23 +97,11 @@ const currentUser = (state = '', action) => {
   }
 };
 
-const owner = (state = '', action) => {
-    switch(action.type){
-        case 'SET_OWNER':
-            return action.owner;
-        case 'CLEAR_OWNER':
-            return null;
-        default:
-            return state;
-    }
-};
-
 const reducers = combineReducers(Object.assign({}, {
     polls,
     choices,
     currentPoll,
     currentUser,
-    owner
 }, {
     routing: routeReducer
 }))

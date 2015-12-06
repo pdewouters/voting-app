@@ -15,96 +15,109 @@ import PollDetails from './PollDetails.js';
 @autobind
 class App extends React.Component {
     authenticate(provider) {
-        console.log("Trying to auth with" + provider);
-        base.authWithOAuthPopup(provider, this.authHandler);
+        ref.authWithOAuthPopup(provider, this.authHandler);
     }
     componentDidMount() {
-        var token = localStorage.getItem('token');
-        if(token) {
-            ref.authWithCustomToken(token,this.authHandler);
-        }
         const { store } = this.context;
-        this.unsubscribe = store.subscribe(() =>
-            this.forceUpdate()
-        );
+        var state = store.getState();
+        var authData = ref.getAuth();
 
-        this.pollsRef = base.listenTo('app/polls', {
-            context: this,
-            asArray: true,
-            then(pollsData){
-                pollsData.map(function(poll){
-                    store.dispatch({
-                        type: 'LOAD_POLL',
-                        poll: poll
+        if(authData) {
+
+            // update our state to reflect the current owner and user
+            store.dispatch({
+                type: 'SET_CURRENT_USER',
+                uid: authData.uid
+            });
+            this.unsubscribe = store.subscribe(() =>
+                this.forceUpdate()
+            );
+
+            this.pollsRef = base.listenTo('app/polls', {
+                context: this,
+                asArray: true,
+                then(pollsData){
+                    pollsData.map(function(poll){
+                            store.dispatch({
+                                type: 'LOAD_POLL',
+                                poll: poll
+                            })
                     })
-                })
 
-            }
-        })
-        this.choicesRef = base.listenTo('app/choices', {
-            context: this,
-            asArray: true,
-            then(choicesData){
-                choicesData.map(function(choice){
-                    store.dispatch({
-                        type: 'LOAD_CHOICE',
-                        choice: choice
+                }
+            })
+            this.choicesRef = base.listenTo('app/choices', {
+                context: this,
+                asArray: true,
+                then(choicesData){
+                    choicesData.map(function(choice){
+                        store.dispatch({
+                            type: 'LOAD_CHOICE',
+                            choice: choice
+                        })
                     })
-                })
 
-            }
-        })
+                }
+            })
+        }
+
     }
 
     logout() {
-        base.unauth();
-        localStorage.removeItem('token');
+        ref.unauth();
         const { store } = this.context;
         store.dispatch({type: 'CLEAR_CURRENT_USER'});
     }
 
     authHandler(err, authData) {
+        var userRef;
+
         if(err) {
-            console.err(err);
+            console.log(err);
             return;
         }
 
-        // save the login token in the browser
-        localStorage.setItem('token',authData.token);
+        // is it a new user?
+        ref.child("users").child(authData.uid).once('value', (snapshot) => {
+            var exists = (snapshot.val() !== null);
+            if(!exists){
 
-        const storeRef = ref.child(authData.uid);
-        storeRef.on('value', (snapshot) => {
-            var data = snapshot.val() || {};
-
-            // claim it as our own if there is no owner already
-            if(!data.owner) {
-                storeRef.set({
-                    owner : authData.uid
+                ref.child("users").child(authData.uid).set({
+                    provider: authData.provider,
+                    name: this.getName(authData)
                 });
+
             }
             const { store } = this.context;
-            // update our state to reflect the current store owner and user
+            // update our state to reflect the current owner and user
             store.dispatch({
                 type: 'SET_CURRENT_USER',
                 uid: authData.uid
             });
-
-            store.dispatch({
-                type: 'SET_OWNER',
-                owner : data.owner || authData.uid
-            });
-
         });
+
+    }
+
+    getName(authData) {
+        switch(authData.provider) {
+            case 'github':
+                return authData.github.displayName;
+            case 'twitter':
+                return authData.twitter.displayName;
+        }
     }
 
     renderLogin() {
         return (
-            <nav className="login">
-                <h2>Polls</h2>
-                <p>Sign in to manage your polls</p>
-                <button className="large button" onClick={this.authenticate.bind(this, 'github')}>Log In with Github</button>
+        <div className="row">
+            <Header />
+            <div className="columns">
+                <h2 className="subheader">Log in to create polls</h2>
 
-            </nav>
+                <button className="large button" onClick={this.authenticate.bind(this, 'github')}>Log In with Github</button>
+                <button className="large button" onClick={this.authenticate.bind(this, 'twitter')}>Log In with Twitter</button>
+            </div>
+        </div>
         )
     }
 
@@ -115,16 +128,19 @@ class App extends React.Component {
     }
 
     addPoll(poll){
+
         const { store } = this.context;
         const state = store.getState();
+
         store.dispatch({
             type: 'ADD_POLL',
             id: poll.id,
-            desc: poll.desc
+            desc: poll.desc,
+            owner: state.currentUser
         });
 
         base.post('app/polls/' + poll.id, {
-            data: {desc: poll.desc},
+            data: {desc: poll.desc, owner: state.currentUser},
         });
     }
 
@@ -153,6 +169,14 @@ class App extends React.Component {
         });
     }
 
+    getUserPolls(){
+        const { store } = this.context;
+        const state = store.getState();
+        return state.polls.filter((poll) => {
+            return state.currentUser === poll.owner;
+        });
+    }
+
     render(){
         let logoutButton = <button className="large button" onClick={this.logout}>Log Out!</button>
 
@@ -165,16 +189,7 @@ class App extends React.Component {
             )
         }
 
-        // then check if they arent the owner of the current store
-        if(state.currentUser !== state.owner) {
-            return (
-                <div>
-                    <p>Sorry, you aren't the owner of this store</p>
-                    {logoutButton}
-                </div>
-            )
-        }
-        var details;
+        var details, userPolls = this.getUserPolls();
 
         if(state.polls.length>=1){
             var pollID = state.currentPoll || state.polls[0];
@@ -189,7 +204,7 @@ class App extends React.Component {
                 <Header />
                 <div className="medium-6 columns">
                     {logoutButton}
-                    <PollList polls={state.polls} loadPollDetails={this.loadPollDetails} />
+                    <PollList polls={userPolls} loadPollDetails={this.loadPollDetails} />
                 </div>
                 <div className="medium-6 columns">
                     <AddPollForm loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addPoll={this.addPoll} />

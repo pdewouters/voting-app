@@ -9,7 +9,7 @@ class AddPollForm extends React.Component {
         var timestamp = (new Date()).getTime();
         var poll = {
             id: 'poll-' + timestamp,
-            desc: this.refs.pollName.value
+            desc: this.refs.pollName.value,
         };
         this.props.addPoll(poll);
         this.props.loadPollDetails(poll.id);
