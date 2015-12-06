@@ -1,4 +1,5 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import _ from 'underscore';
 import Header from './Header';
 import Rebase from 're-base';
@@ -13,6 +14,21 @@ class PollResults extends React.Component {
         this.unsubscribe = store.subscribe(() =>
             this.forceUpdate()
         );
+
+        this.pollsRef = base.listenTo('app/polls', {
+            context: this,
+            asArray: true,
+            then(pollsData){
+                pollsData.map(function(poll){
+                    store.dispatch({
+                        type: 'LOAD_POLL',
+                        poll: poll
+                    })
+                })
+
+            }
+        })
+
         this.choicesRef = base.listenTo('app/choices', {
             context: this,
             asArray: true,
@@ -30,19 +46,21 @@ class PollResults extends React.Component {
 
     componentWillUnmount() {
         this.unsubscribe();
+        base.removeBinding(this.pollsRef);
         base.removeBinding(this.choicesRef);
     }
 
     render(){
         const { store } = this.context;
         var state = store.getState();
+        if(state.polls.length===0) return false; // do not render before polls are loaded
         var poll = _.findWhere(state.polls,{id:this.props.params.pollID});
         var choices = _.where(state.choices,{pollID:this.props.params.pollID});
         return (
             <div className="row">
                 <Header />
                 <div className="columns">
-                    <h2 className="subheader">Choices: {poll.desc}</h2>
+                    <h2 className="subheader">Results for: {poll.desc}</h2>
 
                     <ul className="no-bullet">
                         {choices.map((choice,index) => {
@@ -59,4 +77,4 @@ PollResults.contextTypes = {
     store: React.PropTypes.object
 };
 
-export default PollResults;
+module.exports = connect(state => (state), {})(PollResults);

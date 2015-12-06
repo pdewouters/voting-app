@@ -192,7 +192,7 @@ class App extends React.Component {
         var details, userPolls = this.getUserPolls();
 
         if(state.polls.length>=1){
-            var pollID = state.currentPoll || state.polls[0];
+            var pollID = state.currentPoll || userPolls[0];
             var poll = _.findWhere(state.polls,{id:pollID}) || {};
             var choices = _.where(state.choices,{pollID:pollID}) || [];
             details = <PollDetails loadPollDetails={this.loadPollDetails} currentPoll={state.currentPoll} addChoice={this.addChoice} pollDetails={poll} choices={choices} />;

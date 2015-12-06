@@ -15,6 +15,7 @@ class PollDetails extends React.Component {
         return (
             <div>
                 <h2 className="subheader">Details: {this.props.pollDetails? this.props.pollDetails.desc : ''}</h2>
+                <input type="text" disabled value={window.location.href + 'public/polls/' + this.props.pollDetails.id} />
                 <AddChoiceForm loadPollDetails={this.props.loadPollDetails} currentPoll={this.props.currentPoll} addChoice={this.props.addChoice} />
 
                 <ul className="no-bullet">

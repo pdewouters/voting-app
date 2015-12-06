@@ -1,5 +1,6 @@
 import React from 'react';
 import _ from 'underscore';
+import { connect } from 'react-redux';
 import Header from './Header.js';
 import Rebase from 're-base';
 import { updatePath } from 'redux-simple-router';
@@ -9,11 +10,26 @@ const base = Rebase.createClass('https://paulwp-polls-fcc.firebaseio.com');
 @autobind
 class VoteOnPoll extends React.Component {
 
-    componentDidMount() {
+    componentDidMount() { console.log('compomount');
         const { store } = this.context;
         this.unsubscribe = store.subscribe(() =>
             this.forceUpdate()
         );
+
+        this.pollsRef = base.listenTo('app/polls', {
+            context: this,
+            asArray: true,
+            then(pollsData){
+                pollsData.map(function(poll){
+                    store.dispatch({
+                        type: 'LOAD_POLL',
+                        poll: poll
+                    })
+                })
+
+            }
+        })
+
         this.choicesRef = base.listenTo('app/choices', {
             context: this,
             asArray: true,
@@ -30,9 +46,10 @@ class VoteOnPoll extends React.Component {
 
     }
 
-    componentWillUnmount() {
+    componentWillUnmount() { console.log('compomount');
         this.unsubscribe();
         base.removeBinding(this.choicesRef);
+        base.removeBinding(this.pollsRef);
     }
 
     handleClick(e){
@@ -60,6 +77,7 @@ class VoteOnPoll extends React.Component {
     render(){
         const { store } = this.context;
         var state = store.getState();
+        if(state.polls.length===0) return false; // do not render before polls are loaded
         var poll = _.findWhere(state.polls,{id:this.props.params.pollID});
         var choices = _.where(state.choices,{pollID:this.props.params.pollID});
         return (
@@ -73,7 +91,7 @@ class VoteOnPoll extends React.Component {
                             return <li key={index}><a onClick={this.handleClick} href="#" data-id={choice.id}>{choice.desc}</a></li>
                         })}
                     </ul>
-                 </div>
+                </div>
             </div>
         );
     }
@@ -83,4 +101,4 @@ VoteOnPoll.contextTypes = {
     store: React.PropTypes.object
 };
 
-export default VoteOnPoll;
+module.exports = connect(state => (state), {})(VoteOnPoll);
